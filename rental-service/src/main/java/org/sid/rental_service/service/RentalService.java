@@ -12,7 +12,10 @@ public interface RentalService {
     List<Rental> getAllRentals();
     Rental getRentalById(Long id);
 
-    Rental createRental(Rental rental);
+    Rental createRental(Long carId,
+                        Customer customer,
+                        LocalDate startDate,
+                        LocalDate endDate);
 
     Rental updateStatus(Long rentalId, RentalStatus status);
 

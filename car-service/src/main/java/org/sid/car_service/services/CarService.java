@@ -13,5 +13,5 @@ public interface CarService {
     void deleteCar(Long id);
 
     List<Car> getAvailableCars();
-    void updateCarStatus(Long id, CarStatus status);
+    Car updateCarStatus(Long id, CarStatus status);
 }
