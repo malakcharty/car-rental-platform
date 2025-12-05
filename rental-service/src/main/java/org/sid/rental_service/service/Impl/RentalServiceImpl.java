@@ -1,7 +1,10 @@
 package org.sid.rental_service.service.Impl;
 
 import org.sid.rental_service.clients.CarClient;
+import org.sid.rental_service.clients.PaymentClient;
 import org.sid.rental_service.dto.CarResponse;
+import org.sid.rental_service.dto.PaymentRequest;
+import org.sid.rental_service.dto.PaymentResponse;
 import org.sid.rental_service.entities.Customer;
 import org.sid.rental_service.entities.Rental;
 import org.sid.rental_service.enums.RentalStatus;
@@ -21,13 +24,16 @@ public class RentalServiceImpl implements RentalService {
     private final RentalRepository rentalRepository;
     private final CustomerRepository customerRepository;
     private final CarClient carClient;
+    private final PaymentClient paymentClient;
 
     public RentalServiceImpl(RentalRepository rentalRepository,
                              CustomerRepository customerRepository,
-                             CarClient carClient) {
+                             CarClient carClient,
+                             PaymentClient paymentClient) {
         this.rentalRepository = rentalRepository;
         this.customerRepository = customerRepository;
         this.carClient = carClient;
+        this.paymentClient = paymentClient;
     }
 
     @Override
@@ -76,9 +82,33 @@ public class RentalServiceImpl implements RentalService {
         rental.setEndDate(endDate);
         rental.setTotalPrice(totalPrice);
         rental.setStatus(RentalStatus.PENDING);
+
         Rental saved = rentalRepository.save(rental);
 
+        // La voiture passe en RESERVED dès qu'on crée la réservation
         carClient.updateCarStatus(carId, "RESERVED");
+
+        //Intégration paiement : appel au payment-service via Feign
+
+        PaymentRequest paymentRequest = new PaymentRequest();
+        paymentRequest.setRentalId(saved.getId());
+        paymentRequest.setAmount(totalPrice);
+        paymentRequest.setProvider("STRIPE");
+
+        PaymentResponse paymentResponse = paymentClient.processPayment(paymentRequest);
+
+        if (paymentResponse != null
+                && "SUCCESS".equalsIgnoreCase(paymentResponse.getStatus())) {
+            // Paiement OK : on confirme la réservation et on passe la voiture en RENTED
+            saved.setStatus(RentalStatus.CONFIRMED);
+            saved = rentalRepository.save(saved);
+            carClient.updateCarStatus(carId, "RENTED");
+        } else {
+            // Paiement KO : on annule la réservation et on libère la voiture
+            saved.setStatus(RentalStatus.CANCELLED);
+            saved = rentalRepository.save(saved);
+            carClient.updateCarStatus(carId, "AVAILABLE");
+        }
 
         return saved;
     }
@@ -97,7 +127,6 @@ public class RentalServiceImpl implements RentalService {
 
         return updated;
     }
-
 
     @Override
     public List<Rental> getRentalsByStatus(RentalStatus status) {

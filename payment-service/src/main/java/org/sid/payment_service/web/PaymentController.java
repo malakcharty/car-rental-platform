@@ -2,6 +2,7 @@ package org.sid.payment_service.web;
 
 
 import lombok.RequiredArgsConstructor;
+import org.sid.payment_service.dto.PaymentRequest;
 import org.sid.payment_service.entities.Payment;
 import org.sid.payment_service.enums.PaymentProvider;
 import org.sid.payment_service.enums.PaymentStatus;
@@ -45,4 +46,9 @@ public class PaymentController {
     public List<Payment> getPaymentsByRental(@PathVariable Long rentalId) {
         return paymentService.getPaymentsByRental(rentalId);
     }
+    @PostMapping("/process")
+    public Payment processPayment(@RequestBody PaymentRequest request) {
+        return paymentService.processPayment(request);
+    }
+
 }

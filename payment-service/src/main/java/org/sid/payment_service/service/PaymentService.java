@@ -1,5 +1,6 @@
 package org.sid.payment_service.service;
 
+import org.sid.payment_service.dto.PaymentRequest;
 import org.sid.payment_service.entities.Payment;
 import org.sid.payment_service.enums.PaymentProvider;
 import org.sid.payment_service.enums.PaymentStatus;
@@ -22,4 +23,6 @@ public interface PaymentService {
     List<Payment> getPaymentsByRental(Long rentalId);
 
     List<Payment> getPaymentsByStatus(PaymentStatus status);
+    Payment processPayment(PaymentRequest request);
+
 }
